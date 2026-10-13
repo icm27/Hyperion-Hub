@@ -1,0 +1,1 @@
+Package version not found: @mercuryworkshop/bare-as-module3@2.1.1

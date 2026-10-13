@@ -1,0 +1,22 @@
+{
+  "name": "hyperion-hub",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "vite": "^8.2.2",
+    "wrangler": "^4.127.1"
+  },
+  "dependencies": {
+    "@mercuryworkshop/scramjet": "^1.1.0",
+    "express": "^5.2.1"
+  }
+}
