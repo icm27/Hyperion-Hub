@@ -914,7 +914,11 @@ function loadForwardedHeaders(forward, target, request) {
     for (const header of forward) {
         try {
             if (request.headers.has(header)) {
-                target.set(header, request.headers.get(header));
+                if (target instanceof Headers) {
+                    target.set(header, request.headers.get(header));
+                } else {
+                    target[header] = request.headers.get(header);
+                }
             }
         } catch (e) {}
     }
@@ -1078,10 +1082,10 @@ function loadForwardedHeaders(forward, target, request) {
         loadForwardedHeaders(forwardHeaders, sendHeaders, request);
         const response = await bareFetch(request, request.signal, sendHeaders, remote);
         const responseHeaders = new Headers();
-        for (const [header, value] of passHeaders) {
-          if (!response.headers.has(header)) continue;
-          responseHeaders.set(header, value);
-        }
+for (const header of passHeaders) {
+    if (!response.headers.has(header)) continue;
+    responseHeaders.set(header, response.headers.get(header));
+}
         const status2 = passStatus.includes(response.status) ? response.status : 200;
         if (status2 !== cacheNotModified) {
           responseHeaders.set("x-bare-status", response.status.toString());
@@ -1203,15 +1207,16 @@ function loadForwardedHeaders(forward, target, request) {
         return server;
       }
       __name(createBareServer, "createBareServer");
-      var kvDB = new KVAdapter(BARE);
-      var bare = createBareServer("/", {
-        logErrors: true,
-        database: kvDB
-      });
+      var hasKV = typeof BARE !== "undefined" && typeof BARE.list === "function";
+        var kvDB = hasKV ? new KVAdapter(BARE) : void 0;
+        var bare = createBareServer("/", {
+            logErrors: true,
+            database: kvDB
+        });
       addEventListener("fetch", (event) => {
-        cleanupDatabase(kvDB);
-        if (bare.shouldRoute(event.request)) event.respondWith(bare.routeRequest(event.request));
-      });
+    if (kvDB) cleanupDatabase(kvDB);
+    if (bare.shouldRoute(event.request)) event.respondWith(bare.routeRequest(event.request));
+});
     })();
     /*!
      * depd

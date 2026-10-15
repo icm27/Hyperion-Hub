@@ -73,6 +73,7 @@ if (!adblockLoaded) {
     notifyClientError(`Adblocker completely failed: ${condition}`, 'shield.js', 'adblock');
 }
 
+importScripts('/config.js');
 importScripts('/metrics/worker.js');
 importScripts('/modules/core.js');
 importScripts('/modules/settings.js');
@@ -241,6 +242,8 @@ async function handleRequest(event) {
     if (
     url.pathname.startsWith('/net/') ||
     url.pathname.startsWith('/base/') ||
+    url.pathname.startsWith('/baremod/') ||
+    url.pathname.startsWith('/libcurl/') ||
     url.pathname.startsWith('/assets/') ||
     url.pathname.startsWith('/src/') ||    
     url.pathname.startsWith('/libs/') ||   
@@ -298,15 +301,13 @@ async function handleRequest(event) {
         }
     }
 
-    // Scramjet v2 Route Handler
     if (url.pathname.startsWith('/scramjet/')) {
         if (typeof $scramjetController !== 'undefined') {
             if ($scramjetController.shouldRoute(event)) {
                 if (!adblockEngine) await initAdblocker();
                 return $scramjetController.route(event);
             } else {
-                // RPC bridge race condition: The SW hasn't synced the port with the tab yet.
-                // Wait dynamically up to 2.5 seconds for the port to arrive to prevent flickering.
+              
                 for (let j = 0; j < 25; j++) {
                     await new Promise(r => setTimeout(r, 100));
                     if (typeof $scramjetController !== 'undefined' && $scramjetController.shouldRoute(event)) {
