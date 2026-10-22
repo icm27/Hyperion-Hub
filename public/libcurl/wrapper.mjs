@@ -1,28 +1,33 @@
 import "./index.js";
 
-// Extract the class from the global object populated by your local file
-const BaseClient = globalThis.LibcurlTransport?.LibcurlClient || globalThis.LibcurlTransport?.default || globalThis.LibcurlTransport;
+const RawTransport = self.LibcurlTransport?.LibcurlClient || self.LibcurlTransport?.default || self.LibcurlTransport;
 
-export default class LibcurlWrapper extends BaseClient {
-    constructor(opts) {
-        // Map BareMux v2's standard 'wisp' arguments to what Libcurl actually expects
-        if (opts && opts.wisp && !opts.websocket) {
-            opts.websocket = opts.wisp;
-        }
-        if (opts && !opts.connections) {
-            opts.connections = [30, 20, 6];
-        }
+class CappedLibcurl extends RawTransport {
+    constructor(opts = {}) {
+        if (opts.websocket && !opts.wisp) opts.wisp = opts.websocket;
+        if (opts.wisp && !opts.websocket) opts.websocket = opts.wisp;
+        opts.connections = [8, 60, 4];
         super(opts);
     }
 
-    async request(remote, method, body, headers, redirect) {
-        let safeHeaders = headers;
-        
-        // Fix the "headers is not iterable" crash by safely converting objects to arrays
-        if (headers && typeof headers === 'object' && !Array.isArray(headers) && typeof headers.entries !== 'function') {
-            safeHeaders = Object.entries(headers);
+    async request(remote, method, body, headers, signal) {
+        if (headers && typeof headers === "object" && typeof headers[Symbol.iterator] !== "function") {
+            headers = Object.entries(headers);
+        } else if (!headers) {
+            headers = [];
         }
-        
-        return super.request(remote, method, body, safeHeaders, redirect);
+
+        const res = await super.request(remote, method, body, headers, signal);
+
+        if (res && res.headers && !res.rawHeaders) {
+            res.rawHeaders = Array.isArray(res.headers)
+                ? res.headers
+                : (typeof res.headers.entries === "function" ? [...res.headers.entries()] : Object.entries(res.headers));
+        }
+
+        return res;
     }
 }
+
+export { CappedLibcurl as LibcurlClient };
+export default CappedLibcurl;

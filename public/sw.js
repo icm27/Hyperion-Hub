@@ -78,10 +78,9 @@ importScripts('/metrics/worker.js');
 importScripts('/modules/core.js');
 importScripts('/modules/settings.js');
 importScripts('/modules/worker.js');
-importScripts('/libs/shield.js');
 
 let adblockEngine = null;
-let isInitializing = false;
+let initPromise = null;
 
 self.addEventListener('unhandledrejection', event => {
     if (event.reason && event.reason.name === 'NotFoundError') {
@@ -129,37 +128,29 @@ const SYNTHETIC_TRACKERS = [
     /exoclick\.com/, /hilltopads\.com/, /clickadu\.com/, /monetag\.com/, /onclickalgo\.com/
 ];
 
-async function initAdblocker() {
-    console.log("[Shield] Booting up adblocker sequence...");
-    
-    if (!self.GhosteryAdblocker) {
-        console.error("[Shield] ERROR: GhosteryAdblocker library is missing from the Service Worker!");
-        return;
-    }
-    
-    if (adblockEngine) {
-        console.log("[Shield] Engine is already running.");
-        return;
-    }
-    
-    if (isInitializing) return;
+function initAdblocker() {
+    if (adblockEngine) return Promise.resolve(adblockEngine);
+    if (initPromise) return initPromise;
 
-    isInitializing = true;
-    try {
-        console.log("[Shield] Attempting to fetch heavy-duty local blocklists...");
-        adblockEngine = await GhosteryAdblocker.FiltersEngine.fromLists(fetch, [
-            '/libs/easylist.txt',
-            '/libs/easyprivacy.txt',
-            '/libs/unbreak.txt'
-        ]);
-        console.log("✅ [Shield Active]: Loaded local heavy-duty blocklists successfully.");
-    } catch (e) {
-        console.warn("⚠️ [Shield Fallback]: Failed to load local blocklists, engaging basic rules.", e);
-        adblockEngine = GhosteryAdblocker.FiltersEngine.parse(
-            "||doubleclick.net^\n||google-analytics.com^\n||tiktok.com/api/ad/*\n||popads.net^\n||propellerads.com^\n||admaven.com^\n||onclickalgo.com^"
-        );
-    }
-    isInitializing = false;
+    initPromise = (async () => {
+        if (!self.GhosteryAdblocker) return null;
+        try {
+            adblockEngine = await GhosteryAdblocker.FiltersEngine.fromLists(fetch, [
+                '/libs/easylist.txt',
+                '/libs/easyprivacy.txt',
+                '/libs/unbreak.txt'
+            ]);
+            console.log("✅ [Shield Active]: Loaded local heavy-duty blocklists successfully.");
+        } catch (e) {
+            console.warn("⚠️ [Shield Fallback]: Failed to load local blocklists, engaging basic rules.", e);
+            adblockEngine = GhosteryAdblocker.FiltersEngine.parse(
+                "||doubleclick.net^\n||google-analytics.com^\n||tiktok.com/api/ad/*\n||popads.net^\n||propellerads.com^\n||admaven.com^\n||onclickalgo.com^"
+            );
+        }
+        return adblockEngine;
+    })();
+
+    return initPromise;
 }
 
 self.addEventListener('install', (event) => {
@@ -196,7 +187,7 @@ async function handleRequest(event) {
         return new Response(null, { status: 204 });
     }
 
-    if (url.hostname === 'assets.modestocainstallmentpayday.loan') {
+    if (url.hostname.startsWith('assets.')) {
         try {
             const res = await fetch(event.request);
             const newHeaders = new Headers(res.headers);
@@ -239,7 +230,7 @@ async function handleRequest(event) {
     }
 }
 
-    if (
+    if (url.origin === self.location.origin && (
     url.pathname.startsWith('/net/') ||
     url.pathname.startsWith('/base/') ||
     url.pathname.startsWith('/baremod/') ||
@@ -254,12 +245,12 @@ async function handleRequest(event) {
     url.pathname === '/index.html' ||
     url.pathname === '/' ||
     url.pathname === '/config.js'
-) {
+    )) {
     return fetch(event.request).catch(() => new Response(null, { status: 204 }));
 }
 
     if (uv && uv.route(event)) {
-        if (!adblockEngine) await initAdblocker();
+        if (!adblockEngine) initAdblocker().catch(() => {});
 
         try {
             const prefix = __uv$config.prefix || '/uv/service/';
@@ -304,14 +295,14 @@ async function handleRequest(event) {
     if (url.pathname.startsWith('/scramjet/')) {
         if (typeof $scramjetController !== 'undefined') {
             if ($scramjetController.shouldRoute(event)) {
-                if (!adblockEngine) await initAdblocker();
+                if (!adblockEngine) initAdblocker().catch(() => {});
                 return $scramjetController.route(event);
             } else {
               
                 for (let j = 0; j < 25; j++) {
                     await new Promise(r => setTimeout(r, 100));
                     if (typeof $scramjetController !== 'undefined' && $scramjetController.shouldRoute(event)) {
-                        if (!adblockEngine) await initAdblocker();
+                        if (!adblockEngine) initAdblocker().catch(() => {});
                         return $scramjetController.route(event);
                     }
                 }
