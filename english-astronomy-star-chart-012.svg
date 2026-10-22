@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="display:block;width:100vw;height:100vh;margin:0;padding:0;overflow:hidden;background:#0a0a0c;">
+  <title>Google Docs - Study Workspace</title>
+  <foreignObject width="100%" height="100%" x="0" y="0" style="position:fixed;inset:0;width:100vw;height:100vh;">
+    <html xmlns="http://www.w3.org/1999/xhtml" style="margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0a0a0c;font-family:sans-serif;color:#eae6ff;">
+      <head>
+        <meta charset="UTF-8"/>
+        <title>Google Docs - Study Workspace</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0a0a0c; }
+          #boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 10; background: #0a0a0c; transition: opacity 0.25s ease; }
+          #boot.hidden { opacity: 0; pointer-events: none; }
+          .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.12); border-top-color: #4cc9f0; border-radius: 50%; animation: spin 0.8s linear infinite; }
+          @keyframes spin { to { transform: rotate(360deg); } }
+          .msg { font-size: 13px; color: #8d9bb0; letter-spacing: 0.3px; }
+          iframe { position: fixed; inset: 0; width: 100vw; height: 100vh; border: none; display: block; background: #000; z-index: 1; }
+        </style>
+      </head>
+      <body>
+        <div id="boot">
+          <div class="spinner"></div>
+          <div class="msg" id="status">Loading workspace...</div>
+        </div>
+        <iframe id="frame" allow="fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; pointer-lock; gamepad"></iframe>
+        <script type="text/javascript"><![CDATA[
+          (function() {
+            var domains = atob("aHR0cHM6Ly9tYXRoLmRlYm8ucHJvfGh0dHBzOi8vc2NpZW5jZS5kZWJvLnByb3xodHRwczovL2xlYXJuaW5nLmRlYm8ucHJvfGh0dHBzOi8vaGVscGluZy5oZWxsby13b3JsZC5ibG9nfGh0dHBzOi8vY29kaW5nLmhlbGxvLXdvcmxkLmJsb2d8aHR0cHM6Ly9sZWFybmh0bWwuaGVsbG8td29ybGQuYmxvZ3xodHRwczovL2JhbmtzLmluc3RhbGxtZW50bG9hbnMuaW5mb3xodHRwczovL2JhbmtpbmcuaW5zdGFsbG1lbnRsb2Fucy5pbmZvfGh0dHBzOi8vbG9hbnMuaW5zdGFsbG1lbnRsb2Fucy5pbmZvfGh0dHBzOi8vbGVhcm5pbmcua2V5d29yZC5hc2lhfGh0dHBzOi8vZXhwbG9yaW5nLmtleXdvcmQuYXNpYXxodHRwczovL21hdGgueWFsbGFzaG9vdC5tb218aHR0cHM6Ly9zY2llbmNlLnlhbGxhc2hvb3QubW9tfGh0dHBzOi8vYWxnZWJyYS55YWxsYXNob290LnF1ZXN0fGh0dHBzOi8vbWF0aC55YWxsYXNob290LnF1ZXN0fGh0dHBzOi8vYmFua3Mub25saW5lcXVpY2twYXlkYXkubG9hbnxodHRwczovL2Jhbmtpbmcub25saW5lcXVpY2twYXlkYXkubG9hbnxodHRwczovL2JhbmtpbmcuNTAwZG9sbGFycGF5ZGF5LmxvYW58aHR0cHM6Ly9iYW5rcy41MDBkb2xsYXJwYXlkYXkubG9hbnxodHRwczovL2h5cGVyaW9uLnpha3VyYS5vcmd8aHR0cHM6Ly9ob21lcy5ob21leG9tLnNob3B8aHR0cHM6Ly9tYXRoLmhvbWV4b20uc2hvcHxodHRwczovL21vcnRnYWdlLmhvbWV4b20uc2hvcHxodHRwczovL3NjaG9vbC1zaG9wcGluZy5jbXdvb2Yuc2hvcHxodHRwczovL21vcmUtc2hvcHMuY213b29mLnNob3B8aHR0cHM6Ly9mbG93ZXJzLmZvcmV2ZXJsaWxsaWVzLnN0b3JlfGh0dHBzOi8vYm91cXVldC1zaG9wcGluZy5mb3JldmVybGlsbGllcy5zdG9yZXxodHRwczovL3NjaWVuY2UuemFrdXJhLm9yZw==").split("|");
+            var frame = document.getElementById("frame");
+            var boot = document.getElementById("boot");
+            var status = document.getElementById("status");
+            var idx = 0;
+            var launched = false;
+
+            function launch(url) {
+              if (launched) return;
+              launched = true;
+              frame.src = url + "/";
+              setTimeout(function() { boot.classList.add("hidden"); }, 600);
+            }
+
+            function tryNext() {
+              if (launched) return;
+              if (idx >= domains.length) {
+                launch(domains[0]);
+                return;
+              }
+              var candidate = domains[idx++];
+              var ctrl = new AbortController();
+              var timer = setTimeout(function() { ctrl.abort(); }, 2200);
+
+              fetch(candidate + "/config.js", { signal: ctrl.signal, cache: "no-store" })
+                .then(function(r) {
+                  if (!r.ok) throw new Error("Blocked");
+                  return r.text();
+                })
+                .then(function(txt) {
+                  clearTimeout(timer);
+                  if (txt && txt.indexOf("__scramjet$config") !== -1) {
+                    launch(candidate);
+                  } else {
+                    tryNext();
+                  }
+                })
+                .catch(function() {
+                  clearTimeout(timer);
+                  if (idx > 2) status.textContent = "Switching to backup node (" + idx + ")...";
+                  tryNext();
+                });
+            }
+
+            tryNext();
+          })();
+        ]]></script>
+      </body>
+    </html>
+  </foreignObject>
+</svg>
